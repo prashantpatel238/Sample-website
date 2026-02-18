@@ -1,15 +1,16 @@
 import Link from 'next/link';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import Product from '@/models/Product';
 import ProductCard from '@/components/ProductCard';
 import SectionTitle from '@/components/SectionTitle';
 import { CATEGORIES } from '@/utils/constants';
-import { demoProducts } from '@/utils/mockData';
+import { sampleOffers, sampleProducts, sampleTestimonials } from '@/utils/sampleData';
 
 export default async function HomePage() {
-  let featured = demoProducts.filter((p) => p.featured).slice(0, 8);
+  let featured = sampleProducts.filter((p) => p.featured).slice(0, 8);
 
-  if (isDbConfigured) {
+  const dbReady = await isDatabaseReady();
+  if (dbReady) {
     await connectDB();
     const dbFeatured = await Product.find({ featured: true }).limit(8).lean();
     featured = dbFeatured.map((product) => ({ ...product, _id: product._id.toString() }));
@@ -17,7 +18,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      {!isDbConfigured && (
+      {!dbReady && (
         <div className="bg-amber-100 py-2 text-center text-sm text-amber-900">
           Running in preview mode without database/env setup.
         </div>
@@ -56,7 +57,7 @@ export default async function HomePage() {
       <section className="container py-14">
         <SectionTitle title="Offers" />
         <div className="grid gap-4 md:grid-cols-3">
-          {['10% OFF on first order', 'Free delivery above ₹499', 'Weekend mega discounts'].map((offer) => (
+          {sampleOffers.map((offer) => (
             <div key={offer} className="rounded-xl border border-green-100 bg-white p-6 text-center shadow-sm">
               <p className="text-lg font-semibold text-brand-700">{offer}</p>
             </div>
@@ -67,7 +68,7 @@ export default async function HomePage() {
       <section className="container py-14">
         <SectionTitle title="Testimonials" />
         <div className="grid gap-4 md:grid-cols-3">
-          {['Great quality products and very fast delivery!', 'Best Kirana app in our locality.', 'Super fresh vegetables and dairy every time.'].map((text, i) => (
+          {sampleTestimonials.map((text, i) => (
             <blockquote key={text} className="rounded-xl bg-white p-6 shadow-sm">
               <p>“{text}”</p>
               <footer className="mt-3 text-sm text-gray-500">Customer {i + 1}</footer>

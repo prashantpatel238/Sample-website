@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import User from '@/models/User';
 
 export async function POST(req: Request) {
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
     }
 
-    if (!isDbConfigured) {
+    if (!(await isDatabaseReady())) {
       return NextResponse.json({ message: 'Preview mode: registration simulated successfully.' }, { status: 201 });
     }
 

@@ -1,8 +1,18 @@
 import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import User from '@/models/User';
+
+function authorizeDemo(credentials: { email?: string; password?: string }) {
+  if (credentials.email === 'admin@smartkirana.store' && credentials.password === 'Admin@123') {
+    return { id: 'demo-admin', name: 'Demo Admin', email: credentials.email, role: 'admin' };
+  }
+  if (credentials.email === 'customer@smartkirana.store' && credentials.password === 'Customer@123') {
+    return { id: 'demo-customer', name: 'Demo Customer', email: credentials.email, role: 'customer' };
+  }
+  throw new Error('Demo credentials: admin@smartkirana.store / Admin@123');
+}
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
@@ -19,14 +29,9 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        if (!isDbConfigured) {
-          if (credentials.email === 'admin@smartkirana.store' && credentials.password === 'Admin@123') {
-            return { id: 'demo-admin', name: 'Demo Admin', email: credentials.email, role: 'admin' };
-          }
-          if (credentials.email === 'customer@smartkirana.store' && credentials.password === 'Customer@123') {
-            return { id: 'demo-customer', name: 'Demo Customer', email: credentials.email, role: 'customer' };
-          }
-          throw new Error('Demo credentials: admin@smartkirana.store / Admin@123');
+        const dbReady = await isDatabaseReady();
+        if (!dbReady) {
+          return authorizeDemo(credentials);
         }
 
         await connectDB();

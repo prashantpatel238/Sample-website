@@ -1,14 +1,15 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import Product from '@/models/Product';
 import AddToCartButton from './productClient';
 import { formatCurrency } from '@/utils/format';
-import { demoProducts } from '@/utils/mockData';
+import { sampleProducts } from '@/utils/sampleData';
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  let product: any = demoProducts.find((p) => p.slug === params.id);
-  if (isDbConfigured) {
+  let product: any = sampleProducts.find((p) => p.slug === params.id);
+  const dbReady = await isDatabaseReady();
+  if (dbReady) {
     await connectDB();
     product = await Product.findOne({ slug: params.id }).lean();
   }
@@ -22,9 +23,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function ProductDetail({ params }: { params: { id: string } }) {
-  let product: any = demoProducts.find((p) => p.slug === params.id);
+  let product: any = sampleProducts.find((p) => p.slug === params.id);
 
-  if (isDbConfigured) {
+  const dbReady = await isDatabaseReady();
+  if (dbReady) {
     await connectDB();
     const dbProduct = await Product.findOne({ slug: params.id }).lean();
     product = dbProduct ? { ...dbProduct, _id: dbProduct._id.toString() } : null;
@@ -43,7 +45,7 @@ export default async function ProductDetail({ params }: { params: { id: string }
 
   return (
     <div className="container py-10">
-      {!isDbConfigured && <p className="mb-4 rounded bg-amber-100 p-2 text-sm text-amber-900">Preview mode: demo product details.</p>}
+      {!dbReady && <p className="mb-4 rounded bg-amber-100 p-2 text-sm text-amber-900">Preview mode: demo product details.</p>}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <div className="grid gap-8 rounded-xl bg-white p-6 shadow md:grid-cols-2">
         <img src={product.image} alt={product.name} className="h-96 w-full rounded-xl object-cover" />

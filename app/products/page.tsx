@@ -1,9 +1,9 @@
 import { Metadata } from 'next';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import Product from '@/models/Product';
 import ProductCard from '@/components/ProductCard';
 import { CATEGORIES } from '@/utils/constants';
-import { demoProducts } from '@/utils/mockData';
+import { sampleProducts } from '@/utils/sampleData';
 
 export const metadata: Metadata = {
   title: 'Shop Products',
@@ -15,7 +15,9 @@ export default async function ProductsPage({
 }: {
   searchParams: { search?: string; category?: string; sort?: string };
 }) {
-  if (isDbConfigured) {
+  const dbReady = await isDatabaseReady();
+
+  if (dbReady) {
     await connectDB();
     const query: Record<string, unknown> = {};
 
@@ -29,23 +31,24 @@ export default async function ProductsPage({
       <ProductListView
         products={products.map((product) => ({ ...product, _id: product._id.toString() }))}
         searchParams={searchParams}
+        dbReady={dbReady}
       />
     );
   }
 
-  let products = [...demoProducts];
+  let products = [...sampleProducts];
   if (searchParams.search) products = products.filter((p) => p.name.toLowerCase().includes(searchParams.search!.toLowerCase()));
   if (searchParams.category && CATEGORIES.includes(searchParams.category)) products = products.filter((p) => p.category === searchParams.category);
   if (searchParams.sort === 'price_asc') products.sort((a, b) => a.price - b.price);
   if (searchParams.sort === 'price_desc') products.sort((a, b) => b.price - a.price);
 
-  return <ProductListView products={products} searchParams={searchParams} />;
+  return <ProductListView products={products} searchParams={searchParams} dbReady={dbReady} />;
 }
 
-function ProductListView({ products, searchParams }: { products: any[]; searchParams: { search?: string; category?: string; sort?: string } }) {
+function ProductListView({ products, searchParams, dbReady }: { products: any[]; searchParams: { search?: string; category?: string; sort?: string }; dbReady: boolean }) {
   return (
     <div className="container py-10">
-      {!isDbConfigured && (
+      {!dbReady && (
         <p className="mb-4 rounded bg-amber-100 p-2 text-sm text-amber-900">Showing demo catalog (database not configured).</p>
       )}
       <h1 className="text-3xl font-bold text-brand-700">All Products</h1>

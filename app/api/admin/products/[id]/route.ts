@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import Product from '@/models/Product';
 import { requireAdmin } from '@/lib/apiGuard';
 
@@ -8,7 +8,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if ('error' in auth) return auth.error;
 
   const payload = await req.json();
-  if (!isDbConfigured) {
+  if (!(await isDatabaseReady())) {
     return NextResponse.json({ product: { ...payload, _id: params.id }, message: 'Preview mode: update simulated.' });
   }
 
@@ -21,7 +21,7 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   const auth = await requireAdmin();
   if ('error' in auth) return auth.error;
 
-  if (!isDbConfigured) {
+  if (!(await isDatabaseReady())) {
     return NextResponse.json({ message: `Preview mode: deleted ${params.id} (simulated).` });
   }
 

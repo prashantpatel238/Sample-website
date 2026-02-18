@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import Product from '@/models/Product';
 import { requireAdmin } from '@/lib/apiGuard';
-import { demoProducts } from '@/utils/mockData';
+import { sampleProducts } from '@/utils/sampleData';
 
 export async function GET() {
-  if (!isDbConfigured) return NextResponse.json({ products: demoProducts });
+  if (!(await isDatabaseReady())) return NextResponse.json({ products: sampleProducts });
 
   await connectDB();
   const products = await Product.find().sort({ createdAt: -1 });
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const auth = await requireAdmin();
   if ('error' in auth) return auth.error;
 
-  if (!isDbConfigured) {
+  if (!(await isDatabaseReady())) {
     const payload = await req.json();
     return NextResponse.json({ product: { ...payload, _id: `demo-${Date.now()}` }, message: 'Preview mode: product not persisted.' }, { status: 201 });
   }

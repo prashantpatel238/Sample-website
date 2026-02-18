@@ -1,24 +1,25 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
-import { connectDB, isDbConfigured } from '@/lib/db';
+import { connectDB, isDatabaseReady } from '@/lib/db';
 import Order from '@/models/Order';
 import { formatCurrency } from '@/utils/format';
-import { demoOrders } from '@/utils/mockData';
+import { sampleOrders } from '@/utils/sampleData';
 
 export default async function OrdersPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect('/login');
 
-  let orders: any[] = demoOrders;
-  if (isDbConfigured) {
+  let orders: any[] = sampleOrders;
+  const dbReady = await isDatabaseReady();
+  if (dbReady) {
     await connectDB();
     orders = await Order.find({ userId: session.user.id }).sort({ createdAt: -1 }).lean();
   }
 
   return (
     <div className="container py-10">
-      {!isDbConfigured && <p className="mb-4 rounded bg-amber-100 p-2 text-sm text-amber-900">Showing demo orders in preview mode.</p>}
+      {!dbReady && <p className="mb-4 rounded bg-amber-100 p-2 text-sm text-amber-900">Showing demo orders in preview mode.</p>}
       <h1 className="text-3xl font-bold text-brand-700">My Orders</h1>
       <div className="mt-6 space-y-4">
         {orders.map((order) => (
