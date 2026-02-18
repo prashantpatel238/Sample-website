@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
-import { connectDB } from '@/lib/db';
+import { connectDB, isDbConfigured } from '@/lib/db';
 import Product from '@/models/Product';
 import ProductCard from '@/components/ProductCard';
 import { CATEGORIES } from '@/utils/constants';
+import { demoProducts } from '@/utils/mockData';
 
 export const metadata: Metadata = {
   title: 'Shop Products',
@@ -14,21 +15,39 @@ export default async function ProductsPage({
 }: {
   searchParams: { search?: string; category?: string; sort?: string };
 }) {
-  await connectDB();
-  const query: Record<string, unknown> = {};
+  if (isDbConfigured) {
+    await connectDB();
+    const query: Record<string, unknown> = {};
 
-  if (searchParams.search) {
-    query.name = { $regex: searchParams.search, $options: 'i' };
+    if (searchParams.search) query.name = { $regex: searchParams.search, $options: 'i' };
+    if (searchParams.category && CATEGORIES.includes(searchParams.category)) query.category = searchParams.category;
+
+    const sort = searchParams.sort === 'price_asc' ? { price: 1 } : searchParams.sort === 'price_desc' ? { price: -1 } : { createdAt: -1 };
+    const products = await Product.find(query).sort(sort).lean();
+
+    return (
+      <ProductListView
+        products={products.map((product) => ({ ...product, _id: product._id.toString() }))}
+        searchParams={searchParams}
+      />
+    );
   }
-  if (searchParams.category && CATEGORIES.includes(searchParams.category)) {
-    query.category = searchParams.category;
-  }
 
-  const sort = searchParams.sort === 'price_asc' ? { price: 1 } : searchParams.sort === 'price_desc' ? { price: -1 } : { createdAt: -1 };
-  const products = await Product.find(query).sort(sort).lean();
+  let products = [...demoProducts];
+  if (searchParams.search) products = products.filter((p) => p.name.toLowerCase().includes(searchParams.search!.toLowerCase()));
+  if (searchParams.category && CATEGORIES.includes(searchParams.category)) products = products.filter((p) => p.category === searchParams.category);
+  if (searchParams.sort === 'price_asc') products.sort((a, b) => a.price - b.price);
+  if (searchParams.sort === 'price_desc') products.sort((a, b) => b.price - a.price);
 
+  return <ProductListView products={products} searchParams={searchParams} />;
+}
+
+function ProductListView({ products, searchParams }: { products: any[]; searchParams: { search?: string; category?: string; sort?: string } }) {
   return (
     <div className="container py-10">
+      {!isDbConfigured && (
+        <p className="mb-4 rounded bg-amber-100 p-2 text-sm text-amber-900">Showing demo catalog (database not configured).</p>
+      )}
       <h1 className="text-3xl font-bold text-brand-700">All Products</h1>
       <form className="mt-6 grid gap-3 rounded-xl bg-white p-4 shadow-sm md:grid-cols-4">
         <input name="search" placeholder="Search products" defaultValue={searchParams.search} className="rounded border p-2" />
@@ -47,7 +66,7 @@ export default async function ProductsPage({
       </form>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((product) => (
-          <ProductCard key={product._id.toString()} product={{ ...product, _id: product._id.toString() }} />
+          <ProductCard key={product._id} product={product} />
         ))}
       </div>
     </div>

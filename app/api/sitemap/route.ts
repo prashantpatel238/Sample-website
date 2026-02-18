@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/db';
+import { connectDB, isDbConfigured } from '@/lib/db';
 import Product from '@/models/Product';
+import { demoProducts } from '@/utils/mockData';
 
 export async function GET() {
-  await connectDB();
-  const products = await Product.find({}, { slug: 1 });
   const base = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  let slugs = demoProducts.map((p) => p.slug);
 
-  const urls = ['/', '/products', '/login', '/register', ...products.map((p) => `/products/${p.slug}`)]
+  if (isDbConfigured) {
+    await connectDB();
+    const products = await Product.find({}, { slug: 1 });
+    slugs = products.map((p) => p.slug);
+  }
+
+  const urls = ['/', '/products', '/login', '/register', ...slugs.map((slug) => `/products/${slug}`)]
     .map((path) => `<url><loc>${base}${path}</loc></url>`)
     .join('');
 

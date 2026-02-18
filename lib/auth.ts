@@ -1,7 +1,7 @@
 import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { connectDB } from '@/lib/db';
+import { connectDB, isDbConfigured } from '@/lib/db';
 import User from '@/models/User';
 
 export const authOptions: NextAuthOptions = {
@@ -18,15 +18,24 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials.password) {
           throw new Error('Email and password are required');
         }
+
+        if (!isDbConfigured) {
+          if (credentials.email === 'admin@smartkirana.store' && credentials.password === 'Admin@123') {
+            return { id: 'demo-admin', name: 'Demo Admin', email: credentials.email, role: 'admin' };
+          }
+          if (credentials.email === 'customer@smartkirana.store' && credentials.password === 'Customer@123') {
+            return { id: 'demo-customer', name: 'Demo Customer', email: credentials.email, role: 'customer' };
+          }
+          throw new Error('Demo credentials: admin@smartkirana.store / Admin@123');
+        }
+
         await connectDB();
         const user = await User.findOne({ email: credentials.email }).select('+password');
-        if (!user) {
-          throw new Error('Invalid email or password');
-        }
+        if (!user) throw new Error('Invalid email or password');
+
         const isMatch = await bcrypt.compare(credentials.password, user.password);
-        if (!isMatch) {
-          throw new Error('Invalid email or password');
-        }
+        if (!isMatch) throw new Error('Invalid email or password');
+
         return {
           id: user._id.toString(),
           name: user.name,
@@ -38,18 +47,16 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     jwt: async ({ token, user }) => {
-      if (user) {
-        token.role = user.role;
-      }
+      if (user) token.role = user.role;
       return token;
     },
     session: async ({ session, token }) => {
       if (session.user) {
         session.user.id = token.sub || '';
-        session.user.role = token.role as string;
+        session.user.role = (token.role as string) || 'customer';
       }
       return session;
     }
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || 'dev-secret-for-local-preview'
 };

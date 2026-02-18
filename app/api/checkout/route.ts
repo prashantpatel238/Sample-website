@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/db';
+import { connectDB, isDbConfigured } from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import { requireAuth } from '@/lib/apiGuard';
@@ -10,6 +10,11 @@ export async function POST(req: Request) {
 
   try {
     const { items, address, total, paymentMethod, paymentId } = await req.json();
+
+    if (!isDbConfigured) {
+      return NextResponse.json({ orderId: `demo-order-${Date.now()}`, message: 'Preview mode: order simulated.' }, { status: 201 });
+    }
+
     await connectDB();
 
     for (const item of items) {

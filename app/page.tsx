@@ -1,16 +1,27 @@
 import Link from 'next/link';
-import { connectDB } from '@/lib/db';
+import { connectDB, isDbConfigured } from '@/lib/db';
 import Product from '@/models/Product';
 import ProductCard from '@/components/ProductCard';
 import SectionTitle from '@/components/SectionTitle';
 import { CATEGORIES } from '@/utils/constants';
+import { demoProducts } from '@/utils/mockData';
 
 export default async function HomePage() {
-  await connectDB();
-  const featured = await Product.find({ featured: true }).limit(8).lean();
+  let featured = demoProducts.filter((p) => p.featured).slice(0, 8);
+
+  if (isDbConfigured) {
+    await connectDB();
+    const dbFeatured = await Product.find({ featured: true }).limit(8).lean();
+    featured = dbFeatured.map((product) => ({ ...product, _id: product._id.toString() }));
+  }
 
   return (
     <div>
+      {!isDbConfigured && (
+        <div className="bg-amber-100 py-2 text-center text-sm text-amber-900">
+          Running in preview mode without database/env setup.
+        </div>
+      )}
       <section className="bg-gradient-to-r from-brand-700 to-brand-500 py-16 text-white">
         <div className="container grid items-center gap-8 md:grid-cols-2">
           <div>
@@ -26,7 +37,7 @@ export default async function HomePage() {
         <SectionTitle title="Featured Products" subtitle="Best picks for your kitchen" />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {featured.map((product) => (
-            <ProductCard key={product._id.toString()} product={{ ...product, _id: product._id.toString() }} />
+            <ProductCard key={product._id} product={product} />
           ))}
         </div>
       </section>

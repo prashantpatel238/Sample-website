@@ -9,12 +9,20 @@ export async function POST(req: Request) {
   const auth = await requireAuth();
   if ('error' in auth) return auth.error;
 
+  const { amount } = await req.json();
+
   if (!keyId || !keySecret) {
-    return NextResponse.json({ message: 'Razorpay keys not configured' }, { status: 500 });
+    return NextResponse.json({
+      order: {
+        id: `demo_rzp_order_${Date.now()}`,
+        amount: Math.round(amount * 100),
+        currency: 'INR'
+      },
+      message: 'Preview mode: Razorpay keys missing, using mock order.'
+    });
   }
 
   try {
-    const { amount } = await req.json();
     const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100),

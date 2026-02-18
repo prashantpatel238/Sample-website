@@ -34,6 +34,19 @@ Production-ready Kirana Shop eCommerce web app built with **Next.js 14 (App Rout
 /scripts
 ```
 
+
+## Quick Preview Mode (No Env Needed)
+
+If you only want to check **look and feel** without setting env variables:
+
+- App now runs in **preview mode** when `MONGODB_URI`/Razorpay keys are missing.
+- It uses demo products/orders and simulated checkout responses.
+- Demo login credentials:
+  - `admin@smartkirana.store` / `Admin@123`
+  - `customer@smartkirana.store` / `Customer@123`
+
+> For real data persistence and live payments, configure all env variables.
+
 ## Environment Setup
 
 1. Copy env template:
