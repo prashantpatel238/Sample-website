@@ -1,0 +1,14 @@
+[
+  {
+    "_id": "demo-order-1",
+    "total": 530,
+    "status": "Pending",
+    "paymentMethod": "cod"
+  },
+  {
+    "_id": "demo-order-2",
+    "total": 760,
+    "status": "Shipped",
+    "paymentMethod": "razorpay"
+  }
+]
